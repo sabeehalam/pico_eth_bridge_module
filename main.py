@@ -89,4 +89,5 @@ while True:
     except KeyboardInterrupt as e:
 #     client.close()
         print('Keyboard Interrupt called')
+        print("Git check")
         break
