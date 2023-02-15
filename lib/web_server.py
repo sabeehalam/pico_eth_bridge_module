@@ -2,40 +2,76 @@ import request_to_json
 import time
 import select
 import socket
-import uasyncio
 
 #Open Socket
 def openSocket(port):
     try:
-        addr = socket.getaddrinfo('192.168.0.110', port)[0][-1]
-        server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server.bind(addr)
-        server.listen(1)
-        server.setblocking(False)
-    except OSError as e:
+        address = socket.getaddrinfo('0.0.0.0', port)[0][-1]
+        web_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        web_socket.bind(address)
+        web_socket.listen(5)
+#         web_socket.settimeout(0)
+#         web_socket.setblocking(False)
+        print('listening on', address)
+        return web_socket
+    except TypeError as e:
         print("Socket not established")
-    print('listening on', addr)
-    return server
+        return "Not found"
 
 #Connect client to web server
-def connectWebServer(server,response):
+def listenWebServer(web_socket, buffer_size):
+    if(web_socket == "No found"):
+        return 1,1
     try:
-        rlist, _, _ = select.select([server], [], [], 1)
-        if rlist:
-            client, address = server.accept()
-            print('client connected from', address)
-            try:                      
-                client.sendall('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
-                client.sendall(response) 
-                request = client.recv(1024) 
-                params = request_to_json.parameterSort(str(request))
-                print(params)
-                request_to_json.saveVariables(params)
-                request_to_json.savePreviousVariables(params)
-                request_to_json.printParameters()
-                client.close()
-                
-            except OSError as e:
-                print("Data sent to client")
-    except OSError as e:
+        poller_web = select.poll()
+        poller_web.register(web_socket, select.POLLIN)
+        request = poller_web.poll(10000)  # time in milliseconds
+        if not request:
+            pass
+        else:
+#             # bind the socket to the port
+#             socket.bind(host_1)
+#             # listen for incoming connections
+#             socket.listen(5)
+# #         sock_1.setblocking(False) #Set sockets to non-blocking
+#             print("Server started...")
+
+        # sockets from which we expect to read
+            inputs = [web_socket]
+            outputs = []
+
+            while inputs:
+                # wait for at least one of the sockets to be ready for processing
+                readable, writable, exceptional = select.select(inputs, outputs, inputs)
+
+                for s in readable:
+                    if s is web_socket:
+                        conn, addr = s.accept()
+                        inputs.append(conn)
+                    else:
+                        data = s.recv(buffer_size)
+                        if data:
+                            print(data)
+                            respondWebServer(conn, data, response)
+                        else:
+                            inputs.remove(s)
+                            s.close()                
+
+    except TypeError as e:
         print("Couldn't find any client for web server")
+
+
+def respondWebServer(client, request, response):
+    try:
+        client.sendall('HTTP/1.0 200 OK\r\nContent-type: text/html\r\n\r\n')
+        client.sendall(response)
+        params = request_to_json.parameterSort(str(request))
+        print(params)
+        request_to_json.saveVariables(params)
+        request_to_json.savePreviousVariables(params)
+        request_to_json.printParameters()
+        client.close()       
+        print("Connection closed")
+        
+    except OSError as e:
+        print("Couldn't respond to client from web server")

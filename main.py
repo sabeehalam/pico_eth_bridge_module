@@ -2,6 +2,7 @@ import os
 from machine import Pin, SPI
 import network
 import socket
+import uasyncio as asyncio
 import time
 import gc
 import select
@@ -14,6 +15,7 @@ import tcp_client
 import tcp_server
 import udp_client
 import udp_server
+import asyncio_functions
 
 #Ethernet Connection constants
 SPI_ID = 1
@@ -43,7 +45,7 @@ except OSError:
 
 # Runs a loop open web server and tcp server sockets and listen for connections.
 # If request arrives, respond to them
-#Problem: Only one port being listened to at a time(the one declared at the end).
+#Problem: Can only poll one at a time
 
 while True:
     try:
@@ -59,35 +61,41 @@ while True:
             params["LocalPort"] = "1883"
         
         if(CONNECT_WEBSERVER == 0):
-            server = web_server.openSocket(int(params["ServerPort"]))
-            web_server.listenAndRespondWebServer(server, response)
+            web_server_socket = web_server.openSocket(int(params["ServerPort"]))
+            web_server.listenWebServer(web_server_socket, params["BufSize"])
             CONNECT_WEBSERVER = 1
          
         if(CONNECT_WEBSERVER == 1):
-            web_server.listenAndRespondWebServer(server, response)
+            web_server.listenWebServer(web_server_socket, response)
     
         if(params["Protocol"] == "TCP-SERVER"):
             if(CONNECT_TCP_SERVER == 0):
-                server = tcp_server.openSocket(params["LocalPort"])
-                tcp_server.listenAndRespondTCPServer(server, params["BufSize"])
+                tcp_server_socket = tcp_server.openSocket(params["LocalPort"])
+                tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
                 CONNECT_TCP_SERVER = 1
+                
         if(CONNECT_TCP_SERVER == 1):
-            tcp_server.listenAndRespondTCPServer(server, params["BufSize"])
+                tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
+
             
-        if(params["Protocol"] == "TCP-CLIENT"):
-            tcp_client.startTCPClient(params["Server"], params["LocalPort"], params["BufSize"])        
-        if(params["Protocol"] == "UDP-CLIENT"):
-            udp_client.startUDPClient(params["Server"], params["LocalPort"], params["BufSize"])
-        if(params["Protocol"] == "UDP-SERVER"):
-            udp_server.startUDPServer(params["Server"], params["LocalPort"], params["BufSize"])
-        if(params["Protocol"] == "MQTT-CLIENT"):
-            mqtt_client.startMQTTClient(params["MqClientID"], params["Server"], params["MqUSER"],\
-                            params["MqPasswd"], params["KeepAlive"], params["LocalPort"])
-        
+#         if(params["Protocol"] == "TCP-CLIENT"):
+#             tcp_client.startTCPClient(params["Server"], params["LocalPort"], params["BufSize"])        
+#         if(params["Protocol"] == "UDP-CLIENT"):
+#             udp_client.startUDPClient(params["Server"], params["LocalPort"], params["BufSize"])
+#         if(params["Protocol"] == "UDP-SERVER"):
+#             udp_server.startUDPServer(params["Server"], params["LocalPort"], params["BufSize"])
+#         if(params["Protocol"] == "MQTT-CLIENT"):
+#             mqtt_client.startMQTTClient(params["MqClientID"], params["Server"], params["MqUSER"],\
+#                             params["MqPasswd"], params["KeepAlive"], params["LocalPort"])
+#         
+#         event_loop = asyncio.get_event_loop()
+#         event_loop.run_until_complete(asyncio_functions.uasyncioConnectConfig(params, response))
+#         event_loop.run_until_complete(asyncio_functions.uasyncioTCPServer(params, response))
+#         event_loop.run_forever()
+#         
         gc.collect()
  
     except KeyboardInterrupt as e:
 #     client.close()
         print('Keyboard Interrupt called')
-        print("Git check")
         break
