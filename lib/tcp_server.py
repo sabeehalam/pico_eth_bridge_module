@@ -24,8 +24,8 @@ def listenTCPServer(tcp_socket, buffer_size):
         return 1,1
     try:
         poller_tcp = select.poll()
-        poller_tcp.register(tcp_socket, select.POLLIN)
-        request = poller_tcp.poll(10000)  # time in milliseconds
+        poller_tcp.register(tcp_socket, select.POLLIN | select.POLLOUT)
+        request = poller_tcp.poll(1000)  # time in milliseconds
         if not request:
             pass
         else:

@@ -60,24 +60,23 @@ while True:
         if params["LocalPort"] == "":
             params["LocalPort"] = "1883"
         
+        if(CONNECT_WEBSERVER == 1):
+            web_server.listenWebServer(web_server_socket, int(params["BufSize"]), response)
+            
         if(CONNECT_WEBSERVER == 0):
             web_server_socket = web_server.openSocket(int(params["ServerPort"]))
-            web_server.listenWebServer(web_server_socket, params["BufSize"])
+            web_server.listenWebServer(web_server_socket, int(params["BufSize"]), response)
             CONNECT_WEBSERVER = 1
-         
-        if(CONNECT_WEBSERVER == 1):
-            web_server.listenWebServer(web_server_socket, response)
     
         if(params["Protocol"] == "TCP-SERVER"):
+            if(CONNECT_TCP_SERVER == 1):
+                tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
+                
             if(CONNECT_TCP_SERVER == 0):
                 tcp_server_socket = tcp_server.openSocket(params["LocalPort"])
                 tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
                 CONNECT_TCP_SERVER = 1
-                
-        if(CONNECT_TCP_SERVER == 1):
-                tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
-
-            
+                   
 #         if(params["Protocol"] == "TCP-CLIENT"):
 #             tcp_client.startTCPClient(params["Server"], params["LocalPort"], params["BufSize"])        
 #         if(params["Protocol"] == "UDP-CLIENT"):

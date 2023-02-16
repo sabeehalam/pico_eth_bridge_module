@@ -19,13 +19,13 @@ def openSocket(port):
         return "Not found"
 
 #Connect client to web server
-def listenWebServer(web_socket, buffer_size):
+def listenWebServer(web_socket, buffer_size, response):
     if(web_socket == "No found"):
         return 1,1
     try:
         poller_web = select.poll()
         poller_web.register(web_socket, select.POLLIN)
-        request = poller_web.poll(10000)  # time in milliseconds
+        request = poller_web.poll(1000)  # time in milliseconds
         if not request:
             pass
         else:
@@ -53,11 +53,13 @@ def listenWebServer(web_socket, buffer_size):
                         if data:
                             print(data)
                             respondWebServer(conn, data, response)
+                            s.close()
+                            print("Client closed")
                         else:
                             inputs.remove(s)
                             s.close()                
 
-    except TypeError as e:
+    except OSError as e:
         print("Couldn't find any client for web server")
 
 
@@ -70,8 +72,6 @@ def respondWebServer(client, request, response):
         request_to_json.saveVariables(params)
         request_to_json.savePreviousVariables(params)
         request_to_json.printParameters()
-        client.close()       
-        print("Connection closed")
         
     except OSError as e:
         print("Couldn't respond to client from web server")
