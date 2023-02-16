@@ -25,7 +25,6 @@ async def uasyncioConnectConfig(params, response):
         try:
             server = web_server.openSocket(int(params["ServerPort"]))
             request, client = web_server.listenWebServer(server)
-            web_server.respondWebServer(client, response)
             CONNECT_WEBSERVER = 1
         except TypeError as e:
             print("Couldnt find web server")

@@ -16,19 +16,19 @@ def openSocket(port):
         return web_socket
     except TypeError as e:
         print("Socket not established")
-        return "Not found"
+        return web_socket
 
 #Connect client to web server
 def listenWebServer(web_socket, buffer_size, response):
     if(web_socket == "No found"):
         return 1,1
     try:
-        poller_web = select.poll()
-        poller_web.register(web_socket, select.POLLIN)
-        request = poller_web.poll(1000)  # time in milliseconds
-        if not request:
-            pass
-        else:
+#         poller_web = select.poll()
+#         poller_web.register(web_socket, select.POLLIN)
+#         request = poller_web.poll(1000)  # time in milliseconds
+#         if not request:
+#             pass
+#         else:
 #             # bind the socket to the port
 #             socket.bind(host_1)
 #             # listen for incoming connections
