@@ -47,36 +47,67 @@ except OSError:
 # If request arrives, respond to them
 #Problem: Can only poll one at a time
 
-while True:
+try:
+    params = request_to_json.loadParameters()
+        
+    if params["Server"] == "":
+        params["Server"] = "192.168.0.110"
+    if params["ServerPort"] == "":
+        params["ServerPort"] = "1880"
+    if params["BufSize"] == "":
+        params["BufSize"] = "1024"
+    if params["LocalPort"] == "":
+        params["LocalPort"] = "1883"
+        
+    #Declare and open web server socket
     try:
-        params = request_to_json.loadParameters()
+        web_server_socket = web_server.openSocket(int(params["ServerPort"]))
+        CONNECT_WEBSERVER = 1
+    except TypeError as e:
+        CONNECT_WEBSERVER = 0
         
-        if params["Server"] == "":
-            params["Server"] = "192.168.0.110"
-        if params["ServerPort"] == "":
-            params["ServerPort"] = "1880"
-        if params["BufSize"] == "":
-            params["BufSize"] = "1024"
-        if params["LocalPort"] == "":
-            params["LocalPort"] = "1883"
-        
-        if(CONNECT_WEBSERVER == 1):
-            web_server.listenWebServer(web_server_socket, int(params["BufSize"]), response)
-            
-        if(CONNECT_WEBSERVER == 0):
-            web_server_socket = web_server.openSocket(int(params["ServerPort"]))
-            web_server.listenWebServer(web_server_socket, int(params["BufSize"]), response)
-            CONNECT_WEBSERVER = 1
-    
+    #Declare and open tcp server socket
+    try:
         if(params["Protocol"] == "TCP-SERVER"):
-            if(CONNECT_TCP_SERVER == 1):
-                tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
-                
             if(CONNECT_TCP_SERVER == 0):
                 tcp_server_socket = tcp_server.openSocket(params["LocalPort"])
-                tcp_server.listenTCPServer(tcp_server_socket, params["BufSize"])
                 CONNECT_TCP_SERVER = 1
-                   
+    except TypeError as e:
+        CONNECT_TCP_SERVER = 0
+            
+    # Create a list of sockets to monitor
+    socks = [web_server_socket, tcp_server_socket]
+        
+    # Create a selector object and register the sockets
+    sel = select.poll()
+    for s in socks:
+        sel.register(s, select.POLLIN)
+            
+    # Loop indefinitely, waiting for events on the sockets
+    while True:
+        # Wait for events on the sockets
+        events = sel.poll()
+
+        # Process the events
+        for sock, event in events:
+            if sock == web_server_socket:
+                listenWebServer(params["Server"], params["ServerPort"], params["BufSize"])
+            elif sock == tcpserver:
+                listenTCPServer(params["Server"], params["LocalPort"], params["BufSize"])
+            elif event & select.POLLIN:
+                # There is data to read on a socket
+                data = sock.recv(1024)
+                if not data:
+                    # The remote host has closed the connection
+                    sel.unregister(sock)
+                    sock.close()
+                else:
+                    # Process the data
+                    print(data)
+                    # Check if the socket is the webserver
+                    if sock == web_server_socket:
+                        respondWebServer(client, request, response)
+                          
 #         if(params["Protocol"] == "TCP-CLIENT"):
 #             tcp_client.startTCPClient(params["Server"], params["LocalPort"], params["BufSize"])        
 #         if(params["Protocol"] == "UDP-CLIENT"):
@@ -86,12 +117,7 @@ while True:
 #         if(params["Protocol"] == "MQTT-CLIENT"):
 #             mqtt_client.startMQTTClient(params["MqClientID"], params["Server"], params["MqUSER"],\
 #                             params["MqPasswd"], params["KeepAlive"], params["LocalPort"])
-#         
-#         event_loop = asyncio.get_event_loop()
-#         event_loop.run_until_complete(asyncio_functions.uasyncioConnectConfig(params, response))
-#         event_loop.run_until_complete(asyncio_functions.uasyncioTCPServer(params, response))
-#         event_loop.run_forever()
-#         
+
         gc.collect()
  
     except KeyboardInterrupt as e:
